@@ -1,0 +1,14 @@
+src/torchturbo/ops/providers/native/gated_delta_rule.py
+  h_ba15095d34cb08 1,3-9,14-21,23,78-142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "16e2ca585bce1c62cb72e43937a9d0f6e82bcc1a",
+  "prompts": {},
+  "humans": {
+    "h_ba15095d34cb08": {
+      "author": "金煜翔 <jyx02582852@antgroup.com>"
+    }
+  }
+}
