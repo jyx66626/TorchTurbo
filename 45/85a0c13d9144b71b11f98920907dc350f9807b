@@ -1,0 +1,24 @@
+src/torchturbo/models/bailing_hybrid/modeling_bailing_moe_v3.py
+  h_ba15095d34cb08 1235,1245-1252,1593
+src/torchturbo/models/base.py
+  h_ba15095d34cb08 11,68-75,186
+src/torchturbo/models/deepseek_v4/modeling_deepseek_v4.py
+  h_ba15095d34cb08 1366
+src/torchturbo/models/glm_moe_dsa/modeling_glm_moe_dsa.py
+  h_ba15095d34cb08 819
+src/torchturbo/models/kimi_k25/modeling_deepseek.py
+  h_ba15095d34cb08 1735
+src/torchturbo/models/llada2_moe/modeling_llada2_moe.py
+  h_ba15095d34cb08 958
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4585a0c13d9144b71b11f98920907dc350f9807b",
+  "prompts": {},
+  "humans": {
+    "h_ba15095d34cb08": {
+      "author": "金煜翔 <jyx02582852@antgroup.com>"
+    }
+  }
+}
