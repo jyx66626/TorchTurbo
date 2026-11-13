@@ -1,0 +1,18 @@
+src/torchturbo/models/bailing_hybrid/modeling_bailing_moe_v3.py
+  h_ba15095d34cb08 1245
+src/torchturbo/models/base.py
+  h_ba15095d34cb08 11,69-72
+src/torchturbo/ops/providers/native/gated_delta_rule.py
+  h_ba15095d34cb08 11-13,14-16,18,73-82,84-86,92,94-97,99-102,103,110,118-119,121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3693db068efc49dcb7c5c500b300659e1a9e339b",
+  "prompts": {},
+  "humans": {
+    "h_ba15095d34cb08": {
+      "author": "金煜翔 <jyx02582852@antgroup.com>"
+    }
+  }
+}
