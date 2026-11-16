@@ -1,0 +1,27 @@
+src/torchturbo/models/base.py
+  s_03c0f4f22bc140::t_bf40d122361811 11,68-72
+src/torchturbo/ops/providers/native/gated_delta_rule.py
+  s_03c0f4f22bc140::t_e73f2c946988a3 11-16,18,73-121
+src/torchturbo/ops/providers/native/causal_conv1d.py
+  s_03c0f4f22bc140::t_e73f2c946988a3 11-15,17,69-113
+src/torchturbo/models/bailing_hybrid/modeling_bailing_moe_v3.py
+  s_03c0f4f22bc140::t_e73f2c946988a3 1245-1246
+src/torchturbo/engine/backends/fsdp2/checkpoint/weight_saver.py
+  s_03c0f4f22bc140::t_d436e01185c147 382
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "abcc16120f91f2ac452f3cc7f76fd83086772469",
+  "prompts": {},
+  "sessions": {
+    "s_03c0f4f22bc140": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d2a7-624f-78a1-8253-5ca83d299a68",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "jyx66626 <jyx66626@gmail.com>"
+    }
+  }
+}
