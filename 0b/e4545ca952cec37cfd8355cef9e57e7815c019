@@ -29,6 +29,32 @@ tests/integration_tests/test_cases/qwen3_5_moe/sft_2cpu/config.yaml
   s_694e2eadb2e841::t_ad9307c0207a84 1-105
 tests/integration_tests/test_suite/base_suite.py
   s_694e2eadb2e841::t_9495994b95d992 1-43
+tests/integration_tests/assets/tokenizer/qwen3_5_moe/video_preprocessor_config.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-21
+tests/integration_tests/assets/sft_test/dataset_info.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-10
+tests/integration_tests/test_cases/qwen3_5_moe/sft_2cpu/golden_values_cpu.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-162
+tests/integration_tests/assets/tokenizer/bailing_hybrid/tokenizer_config.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-194
+tests/integration_tests/test_cases/qwen3_5_moe/sft_2npu/config.yaml
+  s_694e2eadb2e841::t_9031cec2438a7e 1-112
+tests/integration_tests/assets/tokenizer/qwen3_5_moe/tokenizer.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-2058
+tests/integration_tests/assets/tokenizer/bailing_hybrid/tokenizer.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-2058
+tests/integration_tests/scripts/gen_init_checkpoint.py
+  s_694e2eadb2e841::t_9031cec2438a7e 1-188
+tests/integration_tests/assets/sft_test/data.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-42
+tests/integration_tests/assets/tokenizer/qwen3_5_moe/preprocessor_config.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-21
+tests/integration_tests/test_cases/qwen3_5_moe/sft_2npu/golden_values_npu.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-150
+tests/integration_tests/scripts/compare_metrics.py
+  s_694e2eadb2e841::t_9031cec2438a7e 1-198
+tests/integration_tests/assets/tokenizer/qwen3_5_moe/tokenizer_config.json
+  s_694e2eadb2e841::t_9031cec2438a7e 1-192
 ---
 {
   "schema_version": "authorship/3.0.0",
