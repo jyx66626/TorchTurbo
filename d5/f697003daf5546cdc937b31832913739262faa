@@ -1,0 +1,20 @@
+src/torchturbo/utils/transformers_utils.py
+  s_09ad7825253b4e::t_ca30c60099e9d3 5-6,8-9,13,16-17,19,32,35-85
+  s_09ad7825253b4e::t_3fe3f4d562fdf9 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d5f697003daf5546cdc937b31832913739262faa",
+  "prompts": {},
+  "sessions": {
+    "s_09ad7825253b4e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1edd4-f7f7-7383-9ce6-a58772452b6e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "金煜翔 <jyx02582852@antgroup.com>"
+    }
+  }
+}
