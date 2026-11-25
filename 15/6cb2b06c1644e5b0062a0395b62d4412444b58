@@ -1,0 +1,18 @@
+src/torchturbo/models/modules/vision/io.py
+  h_5b1674618f0d37 48-50
+tests/models/test_vision_balance.py
+  h_5b1674618f0d37 374,381-382,395-396,399,407,409,414-416
+src/torchturbo/models/modules/vision/balance.py
+  h_5b1674618f0d37 10-13,361
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "156cb2b06c1644e5b0062a0395b62d4412444b58",
+  "prompts": {},
+  "humans": {
+    "h_5b1674618f0d37": {
+      "author": "jyx66626 <jyx66626@gmail.com>"
+    }
+  }
+}
