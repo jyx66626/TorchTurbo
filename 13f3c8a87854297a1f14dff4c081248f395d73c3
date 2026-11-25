@@ -1,0 +1,62 @@
+internal/tools/torchturbo-memory-estimator/.gitignore
+  h_5b1674618f0d37 1-4
+internal/tools/torchturbo-memory-estimator/README.md
+  h_5b1674618f0d37 1-142
+internal/tools/torchturbo-memory-estimator/configs/ling-flash-3.1/config.json
+  h_5b1674618f0d37 1-187
+internal/tools/torchturbo-memory-estimator/configs/ling-flash-3/config.json
+  h_5b1674618f0d37 1-95
+internal/tools/torchturbo-memory-estimator/estimate.py
+  h_5b1674618f0d37 1-17
+internal/tools/torchturbo-memory-estimator/estimator/__init__.py
+  h_5b1674618f0d37 1-16
+internal/tools/torchturbo-memory-estimator/estimator/activations.py
+  h_5b1674618f0d37 1-276
+internal/tools/torchturbo-memory-estimator/estimator/bootstrap.py
+  h_5b1674618f0d37 1-49
+internal/tools/torchturbo-memory-estimator/estimator/cli.py
+  h_5b1674618f0d37 1-166
+internal/tools/torchturbo-memory-estimator/estimator/core.py
+  h_5b1674618f0d37 1-352
+internal/tools/torchturbo-memory-estimator/estimator/memory.py
+  h_5b1674618f0d37 1-138
+internal/tools/torchturbo-memory-estimator/estimator/model_loader.py
+  h_5b1674618f0d37 1-200
+internal/tools/torchturbo-memory-estimator/estimator/optimizer.py
+  h_5b1674618f0d37 1-172
+internal/tools/torchturbo-memory-estimator/estimator/parallel.py
+  h_5b1674618f0d37 1-302
+internal/tools/torchturbo-memory-estimator/estimator/report.py
+  h_5b1674618f0d37 1-155
+internal/tools/torchturbo-memory-estimator/estimator/webui/__init__.py
+  h_5b1674618f0d37 1-5
+internal/tools/torchturbo-memory-estimator/estimator/webui/main.py
+  h_5b1674618f0d37 1-199
+internal/tools/torchturbo-memory-estimator/estimator/webui/static/index.html
+  h_5b1674618f0d37 1-98
+internal/tools/torchturbo-memory-estimator/estimator/webui/static/script.js
+  h_5b1674618f0d37 1-161
+internal/tools/torchturbo-memory-estimator/estimator/webui/static/style.css
+  h_5b1674618f0d37 1-122
+internal/tools/torchturbo-memory-estimator/requirements.txt
+  h_5b1674618f0d37 1-14
+internal/tools/torchturbo-memory-estimator/tests/smoke_test.py
+  h_5b1674618f0d37 1-83
+internal/tools/torchturbo-memory-estimator/ttconfigs/ling-flash-3-sft-131k-sp8.yaml
+  h_5b1674618f0d37 1-28
+internal/tools/torchturbo-memory-estimator/ttconfigs/ling-flash-3-sft-256k-sp32.yaml
+  h_5b1674618f0d37 1-38
+internal/tools/torchturbo-memory-estimator/webui_server.py
+  h_5b1674618f0d37 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "13f3c8a87854297a1f14dff4c081248f395d73c3",
+  "prompts": {},
+  "humans": {
+    "h_5b1674618f0d37": {
+      "author": "jyx66626 <jyx66626@gmail.com>"
+    }
+  }
+}

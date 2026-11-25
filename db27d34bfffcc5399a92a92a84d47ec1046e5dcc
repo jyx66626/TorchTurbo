@@ -1,0 +1,56 @@
+tests/integration_tests/test_cases/bailing_v3/sft_16npu/config.yaml
+  s_694e2eadb2e841::t_f27ff8efc482ac 6-7
+  s_694e2eadb2e841::t_b9abbdd522681c 1-5,8-80
+tests/integration_tests/README.md
+  s_694e2eadb2e841::t_f1b222383a428c 2-146,154-183,189-191,196-198,202,210-227
+  s_694e2eadb2e841::t_83e8ab9dfb276f 152,188,194,207
+  s_694e2eadb2e841::t_f27ff8efc482ac 199
+  s_694e2eadb2e841::t_281b03c0fae1f9 1,147-151,153,184-187,192-193,195,200-201,203-206,208-209
+tests/integration_tests/test_cases/bailing_v3/sft_16npu/golden_values_npu.json
+  s_694e2eadb2e841::t_f27ff8efc482ac 20-21
+  s_694e2eadb2e841::t_fb0b2adf5057c6 1-19,22-116
+src/torchturbo/models/base.py
+  s_03c0f4f22bc140::t_bf40d122361811 11,68-72
+src/torchturbo/engine/backends/fsdp2/checkpoint/weight_saver.py
+  s_03c0f4f22bc140::t_d436e01185c147 382
+tests/integration_tests/scripts/run_tests.py
+  s_694e2eadb2e841::t_83e8ab9dfb276f 317
+  s_694e2eadb2e841::t_f27ff8efc482ac 347
+  s_694e2eadb2e841::t_1189ee25cfa512 1-316,318-346,348-377
+src/torchturbo/ops/providers/native/gated_delta_rule.py
+  s_03c0f4f22bc140::t_e73f2c946988a3 11-16,18,73-121
+src/torchturbo/ops/providers/native/causal_conv1d.py
+  s_03c0f4f22bc140::t_e73f2c946988a3 11-15,17,69-113
+src/torchturbo/models/bailing_hybrid/modeling_bailing_moe_v3.py
+  s_03c0f4f22bc140::t_e73f2c946988a3 1245-1246
+tests/integration_tests/run_tests.sh
+  s_694e2eadb2e841::t_9e4a704f43e175 1-7
+tests/integration_tests/test_cases/qwen3_5_moe/sft_2cpu/config.yaml
+  s_694e2eadb2e841::t_ad9307c0207a84 1-105
+tests/integration_tests/test_suite/base_suite.py
+  s_694e2eadb2e841::t_9495994b95d992 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "db27d34bfffcc5399a92a92a84d47ec1046e5dcc",
+  "prompts": {},
+  "sessions": {
+    "s_03c0f4f22bc140": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d2a7-624f-78a1-8253-5ca83d299a68",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "jyx66626 <jyx66626@gmail.com>"
+    },
+    "s_694e2eadb2e841": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e81f-1db1-7d00-8da2-6c3116fe0b99",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}

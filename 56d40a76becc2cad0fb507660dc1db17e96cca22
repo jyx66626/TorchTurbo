@@ -1,0 +1,46 @@
+tests/integration_tests/assets/sft_test/data.json
+  h_ba15095d34cb08 1-42
+tests/integration_tests/assets/sft_test/dataset_info.json
+  h_ba15095d34cb08 1-10
+tests/integration_tests/assets/tokenizer/bailing_hybrid/tokenizer.json
+  h_ba15095d34cb08 1-2058
+tests/integration_tests/assets/tokenizer/bailing_hybrid/tokenizer_config.json
+  h_ba15095d34cb08 1-194
+tests/integration_tests/assets/tokenizer/qwen3_5_moe/preprocessor_config.json
+  h_ba15095d34cb08 1-21
+tests/integration_tests/assets/tokenizer/qwen3_5_moe/tokenizer.json
+  h_ba15095d34cb08 1-2058
+tests/integration_tests/assets/tokenizer/qwen3_5_moe/tokenizer_config.json
+  h_ba15095d34cb08 1-192
+tests/integration_tests/assets/tokenizer/qwen3_5_moe/video_preprocessor_config.json
+  h_ba15095d34cb08 1-21
+tests/integration_tests/run_tests.sh
+  h_ba15095d34cb08 1-8
+tests/integration_tests/scripts/compare_metrics.py
+  h_ba15095d34cb08 1-179
+tests/integration_tests/scripts/features.py
+  h_ba15095d34cb08 1-43
+tests/integration_tests/scripts/generate_initial_checkpoint.py
+  h_ba15095d34cb08 1-185
+tests/integration_tests/scripts/run_tests.py
+  h_ba15095d34cb08 1-385
+tests/integration_tests/test_cases/bailing_v3/sft_2npu/config.yaml
+  h_ba15095d34cb08 1-104
+tests/integration_tests/test_cases/qwen3_5_moe/sft_2cpu/config.yaml
+  h_ba15095d34cb08 1-109
+tests/integration_tests/test_cases/qwen3_5_moe/sft_2cpu/golden_values_cpu.json
+  h_ba15095d34cb08 1-161
+tests/integration_tests/test_cases/qwen3_5_moe/sft_2npu/config.yaml
+  h_ba15095d34cb08 1-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "56d40a76becc2cad0fb507660dc1db17e96cca22",
+  "prompts": {},
+  "humans": {
+    "h_ba15095d34cb08": {
+      "author": "金煜翔 <jyx02582852@antgroup.com>"
+    }
+  }
+}
