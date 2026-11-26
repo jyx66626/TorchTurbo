@@ -39,6 +39,12 @@ from torchturbo.models.modules.cpu_resident import (
     CPUResidentParameter,
 )
 from torchturbo.models.modules.loss import chunk_loss, logits_loss
+from torchturbo.models.modules.moe.route_dump import (
+    MoERouteDump,
+    RouteCheckpoint,
+    capture_route_checkpoint,
+    install_moe_route_dump,
+)
 from torchturbo.models.modules.vision import register_vision_balance
 from torchturbo.parallel import (
     FSDPParallelPlan,
@@ -133,6 +139,7 @@ class FSDP2Backend(BaseBackend):
         self.fsdp_config: FSDPConfig = config.backend_config
         # Manages the optimizer returned by prepare_optimizer().
         self._optimizer_memory: OptimizerMemoryController | None = None
+        self._moe_route_dump: MoERouteDump | None = None
 
         offload = self.fsdp_config.cpu_offload
         if offload.enabled and (
@@ -517,6 +524,7 @@ class FSDP2Backend(BaseBackend):
         if ep_size > 1:
             self.gradient_scaling_factor = 1 / ep_size
 
+        self._moe_route_dump = install_moe_route_dump(model, sp_info["sp_size"])
         return model
 
     def create_checkpoint_manager(self) -> FSDP2CheckpointManager:
@@ -874,6 +882,7 @@ class FSDP2Backend(BaseBackend):
             module: nn.Module,
             use_reentrant: bool,
             moe_runtime_inputs: tuple[tuple[BaseMoELayer, MoERuntimeInputs], ...],
+            route_checkpoint: RouteCheckpoint | None,
         ) -> Iterator[None]:
             # The recompute context is active only in backward. Expert containers
             # can be nested FSDP units under the checkpointed layer, and their
@@ -881,6 +890,8 @@ class FSDP2Backend(BaseBackend):
             # experts.forward(). Without this guard, expert forward-prefetch
             # edges can leak into backward.
             with ExitStack() as stack:
+                if route_checkpoint is not None:
+                    stack.enter_context(route_checkpoint.recompute_context())
                 stack.enter_context(restore_moe_runtime_inputs(moe_runtime_inputs))
                 stack.enter_context(
                     self.prefetch_manager.suspend_expert_forward_prefetch(model)
@@ -916,6 +927,7 @@ class FSDP2Backend(BaseBackend):
 
                 base_fn = functools.partial(original_forward, **checkpoint_kwargs)
                 moe_runtime_inputs = tuple((moe, moe._runtime_inputs) for moe in moe_modules)
+                route_checkpoint = capture_route_checkpoint()
 
                 def checkpoint_context_fn():
                     # Replaying the forward must not count its router assignments again.
@@ -923,7 +935,13 @@ class FSDP2Backend(BaseBackend):
                         (moe, replace(inputs, accumulate_tokens_per_expert=False))
                         for moe, inputs in moe_runtime_inputs
                     )
-                    return nullcontext(), recompute_context(module, False, replay_inputs)
+                    forward_context = (
+                        nullcontext() if route_checkpoint is None
+                        else route_checkpoint.forward_context()
+                    )
+                    return forward_context, recompute_context(
+                        module, False, replay_inputs, route_checkpoint,
+                    )
 
                 if not use_reentrant:
                     return checkpoint(
@@ -935,7 +953,10 @@ class FSDP2Backend(BaseBackend):
 
                 def run_fn(*a, **kw):
                     if torch.is_grad_enabled():
-                        with recompute_context(module, True, moe_runtime_inputs):
+                        with recompute_context(module, True, moe_runtime_inputs, route_checkpoint):
+                            return base_fn(*a, **kw)
+                    if route_checkpoint is not None:
+                        with route_checkpoint.forward_context():
                             return base_fn(*a, **kw)
                     return base_fn(*a, **kw)
 
@@ -1469,6 +1490,8 @@ class FSDP2Backend(BaseBackend):
             self.device_runtime,
             qk_clip_controller,
         )
+        if self._moe_route_dump is not None:
+            self._moe_route_dump.bind_optimizer(optimizer)
         return optimizer
 
     def offload_optimizer(self) -> None:
