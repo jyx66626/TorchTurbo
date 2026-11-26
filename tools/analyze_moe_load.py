@@ -7,7 +7,7 @@ import argparse
 import csv
 import json
 from collections import Counter, defaultdict
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 import numpy as np
@@ -85,8 +85,14 @@ def simulate_ep(counts: np.ndarray, metadata: dict, ep_size: int) -> dict:
             placement = [rank for rank in subgroup_ranks for _ in range(num_local_experts)]
             _, rank_load = aggregate_load(counts[start:stop], subgroup_ranks, placement)
         simulated[start:stop] = rank_load
-        subgroups.append({"global_ranks": subgroup_ranks, "rank_load": rank_load.tolist()})
+        subgroups.append({
+            "global_ranks": subgroup_ranks,
+            "rank_load": rank_load.tolist(),
+            "rank_stats": _rank_stats(rank_load, subgroup_ranks),
+        })
 
+    subgroup_imbalances = (group["rank_stats"]["max_over_mean"] for group in subgroups)
+    max_subgroup_imbalance = max((value for value in subgroup_imbalances if value is not None), default=None)
     return {
         "kind": "counterfactual_fixed_routing",
         "ep_size": ep_size,
@@ -95,6 +101,7 @@ def simulate_ep(counts: np.ndarray, metadata: dict, ep_size: int) -> dict:
         "actual_max_rank_load": int(actual_load.max()),
         "max_rank_load_delta": int(simulated.max() - actual_load.max()),
         "rank_stats": _rank_stats(simulated, ranks),
+        "max_subgroup_imbalance": max_subgroup_imbalance,
         "buffer_estimates": _buffer_bytes(simulated, counts, metadata, num_local_experts),
         "subgroups": subgroups,
     }
@@ -245,6 +252,69 @@ def _plots(directory: Path, expert_load: np.ndarray, rank_load: np.ndarray, laye
         plt.close(fig)
 
 
+def _summarize_ep_layer(summary: dict[tuple[int, str, int], dict], layer: dict) -> None:
+    source_ep_size = layer["ep_size"]
+    measured = {
+        "ep_size": source_ep_size,
+        "kind": "measured",
+        "rank_stats": layer["rank_stats"],
+        "max_subgroup_imbalance": layer["rank_stats"]["max_over_mean"],
+        "buffer_estimates": layer["buffer_estimates"],
+    }
+    for result in (measured, *layer["ep_simulations"]):
+        if "skipped" in result or result.get("identity"):
+            continue
+        ep_size, kind = result["ep_size"], result["kind"]
+        row = summary.setdefault(
+            (ep_size, kind, source_ep_size),
+            {
+                "ep_size": ep_size,
+                "kind": kind,
+                "source_ep_size": source_ep_size,
+                "num_layer_calls": 0,
+                "max_subgroup_imbalance": None,
+                "max_fc2_output_bytes": 0,
+            },
+        )
+        row["num_layer_calls"] += 1
+        rank_stats = result["rank_stats"]
+        if rank_stats["max"] > row.get("max_rank_tokens", -1):
+            row.update(
+                max_rank_tokens=rank_stats["max"],
+                layer_id=layer["layer_id"],
+                layer_fqn=layer["layer_fqn"],
+                hot_global_rank=min(rank_stats["hot_global_ranks"]),
+                source_ep_group_leader=layer["ep_group_leader"],
+                microstep=layer["microstep"],
+                phase=layer["phase"],
+                run_id=layer.get("run_id"),
+            )
+
+        # Peak rank load, subgroup imbalance and FC2 bytes can occur in different layers.
+        imbalance = result["max_subgroup_imbalance"]
+        if imbalance is not None:
+            row["max_subgroup_imbalance"] = max(row["max_subgroup_imbalance"] or 0.0, imbalance)
+        row["max_fc2_output_bytes"] = max(
+            row["max_fc2_output_bytes"], result["buffer_estimates"]["fc2_output_max_bytes"],
+        )
+        row["max_fc2_output_gib"] = row["max_fc2_output_bytes"] / (1 << 30)
+
+
+def _write_ep_summary(path: Path, rows: Iterable[dict]) -> None:
+    columns = [
+        "ep_size", "max_rank_tokens", "layer_id", "hot_global_rank", "max_subgroup_imbalance",
+        "max_fc2_output_bytes", "max_fc2_output_gib", "kind", "source_ep_size",
+        "source_ep_group_leader", "microstep", "phase", "run_id", "layer_fqn", "num_layer_calls",
+    ]
+    sorted_rows = sorted(
+        rows, key=lambda row: (-row["ep_size"], row["kind"] != "measured", -row["source_ep_size"]),
+    )
+    with path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(sorted_rows)
+
+
 def analyze(
     input_dir: Path, output_dir: Path, ep_sizes: list[int], plots: bool = False,
 ) -> dict:
@@ -257,6 +327,7 @@ def analyze(
         "skipped": [],
         "microsteps": [],
     }
+    ep_summary: dict[tuple[int, str, int], dict] = {}
     for manifest in sorted(input_dir.rglob("metadata.jsonl")):
         directory = manifest.parent
         relative = directory.relative_to(input_dir)
@@ -304,6 +375,7 @@ def analyze(
                                 "skipped": str(exc),
                             }
                         stats["ep_simulations"].append(simulation)
+                    _summarize_ep_layer(ep_summary, stats)
 
                     call_key = _call_key(metadata)
                     if phase == "forward":
@@ -353,6 +425,7 @@ def analyze(
     with (output_dir / "report.json").open("w", encoding="utf-8") as stream:
         json.dump(report, stream, indent=2)
         stream.write("\n")
+    _write_ep_summary(output_dir / "ep_summary.csv", ep_summary.values())
     return report
 
 
@@ -370,6 +443,7 @@ def main() -> None:
     report = analyze(args.input_dir, args.output_dir, list(dict.fromkeys(args.simulate_ep)), args.plots)
     print(f"Analyzed {report['num_matrices']} matrices, skipped {len(report['skipped'])}.")
     print(args.output_dir / "report.json")
+    print(args.output_dir / "ep_summary.csv")
 
 
 if __name__ == "__main__":
