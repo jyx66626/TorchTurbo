@@ -7,6 +7,7 @@
 # Modified by the TorchTurbo contributors.
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -19,6 +20,9 @@ from torchturbo.runtime import get_device_runtime
 from ..comm.comm import all_to_all, gather_from_sequence_parallel_region
 from .moe_config import MoEConfig
 from .utils import maybe_move_tensor_to_cpu
+
+if TYPE_CHECKING:
+    from .route_dump import LayerRouteDump
 
 
 class MoETokenDispatcher(ABC):
@@ -121,9 +125,12 @@ class MoEAlltoAllTokenDispatcher(MoETokenDispatcher):
         self.num_global_tokens_per_local_expert: torch.Tensor | None = None
         self.input_splits: torch.Tensor | np.ndarray | None = None
         self.output_splits: torch.Tensor | np.ndarray | None = None
+        self.route_dump: LayerRouteDump | None = None
 
-    def preprocess(self, routing_map: torch.Tensor) -> torch.Tensor:
-        """Compute device counts and split sizes without copying them to CPU."""
+    def preprocess(
+        self, routing_map: torch.Tensor, hidden_states: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Compute device counts and split sizes before permuting tokens."""
         # Source counts are ordered by destination rank, then expert.
         local_counts = routing_map.sum(dim=0).long()
         self.input_splits = None
@@ -135,13 +142,19 @@ class MoEAlltoAllTokenDispatcher(MoETokenDispatcher):
             global_counts = gather_from_sequence_parallel_region(
                 local_counts, group=self.ep_group
             ).reshape(self.ep_size, self.num_experts)
+        else:
+            global_counts = local_counts.reshape(1, self.num_local_experts)
+        if self.route_dump is not None and hidden_states is not None:
+            self.route_dump.record(global_counts, hidden_states)
+
+        if self.ep_size > 1:
             received_counts = global_counts[
                 :, self.local_expert_indices[0] : self.local_expert_indices[-1] + 1
             ].contiguous()
             self.output_splits = received_counts.sum(axis=1)
             tokens_per_expert = received_counts.sum(dim=0)
         else:
-            received_counts = local_counts.reshape(1, self.num_local_experts)
+            received_counts = global_counts
             tokens_per_expert = local_counts
         self.num_global_tokens_per_local_expert = received_counts
         return tokens_per_expert
@@ -159,7 +172,7 @@ class MoEAlltoAllTokenDispatcher(MoETokenDispatcher):
         assert probs.dim() == 2, "Expected 2D tensor for probs"
         assert routing_map.dim() == 2, "Expected 2D tensor for token2expert mask"
         assert routing_map.dtype == torch.bool, "Expected bool tensor for mask"
-        self.tokens_per_expert = self.preprocess(routing_map)
+        self.tokens_per_expert = self.preprocess(routing_map, hidden_states)
         hidden_states = hidden_states.view(-1, self.hidden_shape[-1])
         self.hidden_shape_before_permute = hidden_states.shape
         self._maybe_dtoh_and_synchronize("before_permutation_1")
