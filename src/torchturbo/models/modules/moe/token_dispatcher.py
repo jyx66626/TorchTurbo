@@ -7,6 +7,7 @@
 # Modified by the TorchTurbo contributors.
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -22,6 +23,9 @@ from ..comm.comm import all_to_all, gather_from_sequence_parallel_region
 from .moe_config import MoEConfig
 from .utils import maybe_move_tensor_to_cpu
 from .virtual_expert_load_balancer import VirtualExpertLoadBalancer
+
+if TYPE_CHECKING:
+    from .route_dump import LayerRouteDump
 
 
 class MoETokenDispatcher(ABC):
@@ -134,11 +138,13 @@ class MoEAlltoAllTokenDispatcher(MoETokenDispatcher):
         self.num_global_tokens_per_local_expert: torch.Tensor | None = None
         self.input_splits: torch.Tensor | np.ndarray | None = None
         self.output_splits: torch.Tensor | np.ndarray | None = None
+        self.route_dump: LayerRouteDump | None = None
 
     def preprocess(
-        self, routing_map: torch.Tensor | None = None, *, expert_indices: torch.Tensor | None = None,
+        self, routing_map: torch.Tensor | None = None, *,
+        expert_indices: torch.Tensor | None = None, hidden_states: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Compute device counts and split sizes without copying them to CPU."""
+        """Compute device counts and split sizes before permuting tokens."""
         # Source counts are ordered by destination rank, then expert.
         assignments = expert_indices if expert_indices is not None else routing_map
         if assignments is None:
@@ -165,8 +171,11 @@ class MoEAlltoAllTokenDispatcher(MoETokenDispatcher):
             self.output_splits = received_counts.sum(axis=1)
             tokens_per_expert = received_counts.sum(dim=0)
         else:
-            received_counts = local_counts.reshape(1, self.num_local_experts)
+            global_counts = local_counts.reshape(1, self.num_local_experts)
+            received_counts = global_counts
             tokens_per_expert = local_counts
+        if self.route_dump is not None and hidden_states is not None:
+            self.route_dump.record(global_counts, hidden_states)
         self.num_global_tokens_per_local_expert = received_counts
         return tokens_per_expert
 
@@ -184,7 +193,7 @@ class MoEAlltoAllTokenDispatcher(MoETokenDispatcher):
                 routing_map.shape[0], self.config.moe_router_topk,
             )
         self.hidden_shape = hidden_states.shape
-        self.tokens_per_expert = self.preprocess(expert_indices)
+        self.tokens_per_expert = self.preprocess(expert_indices, hidden_states=hidden_states)
         hidden_states = hidden_states.view(-1, self.hidden_shape[-1])
         self.hidden_shape_before_permute = hidden_states.shape
         self._maybe_dtoh_and_synchronize("before_permutation_1")
@@ -443,6 +452,7 @@ class _VirtualExpertHybridEPManager(VirtualExpertLoadBalancer, _HybridEPManager)
             router_topk=router_topk,
             config=config,
         )
+        self.route_dump: LayerRouteDump | None = None
 
     def setup_metadata(
         self,
@@ -472,6 +482,15 @@ class _VirtualExpertHybridEPManager(VirtualExpertLoadBalancer, _HybridEPManager)
         hidden_states, runtime_experts = self.prepare_virtual_expert_dispatch(
             hidden_states
         )
+        if self.route_dump is not None:
+            # The planner has joined, so the shared histogram still holds this
+            # layer's pre-dispatch routes; the next layer will overwrite it.
+            self.route_dump.record(self.planner.gathered_counts, hidden_states)
+            # The joined plan also says how many tokens this rank serves per slot.
+            self.route_dump.record_runtime(
+                self._plan.routing.dispatch_context.tokens_per_expert,
+                hidden_states, self.num_runtime_experts,
+            )
         super().setup_metadata(runtime_experts, self.token_probs)
         return super().dispatch(
             hidden_states, dispatch_context=self._plan.routing.dispatch_context,
