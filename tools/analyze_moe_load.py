@@ -42,13 +42,18 @@ def _rank_stats(load: np.ndarray, ranks: list[int]) -> dict:
     return stats
 
 
-def _buffer_bytes(rank_load: np.ndarray, counts: np.ndarray, metadata: dict, local_experts: int) -> dict:
+def _buffer_bytes(
+    rank_load: np.ndarray, metadata: dict, local_experts: int, returned_tokens: int | None,
+) -> dict:
+    """Estimate peak activation buffers from served load and combine return volume."""
     row_bytes = metadata["hidden_size"] * metadata["bytes_per_element"]
     expert_output_bytes = int(rank_load.max()) * row_bytes
     return {
         "fc2_output_max_bytes": expert_output_bytes,
         "combine_permutation_max_bytes": expert_output_bytes if local_experts > 1 else 0,
-        "combine_returned_packed_max_bytes": int(counts.sum(axis=1, dtype=np.int64).max()) * row_bytes,
+        "combine_returned_packed_max_bytes": (
+            None if returned_tokens is None else returned_tokens * row_bytes
+        ),
     }
 
 
@@ -102,18 +107,25 @@ def simulate_ep(counts: np.ndarray, metadata: dict, ep_size: int) -> dict:
         "max_rank_load_delta": int(simulated.max() - actual_load.max()),
         "rank_stats": _rank_stats(simulated, ranks),
         "max_subgroup_imbalance": max_subgroup_imbalance,
-        "buffer_estimates": _buffer_bytes(simulated, counts, metadata, num_local_experts),
+        "buffer_estimates": _buffer_bytes(
+            simulated, metadata, num_local_experts, int(counts.sum(axis=1).max()),
+        ),
         "subgroups": subgroups,
     }
 
 
 def compare_phases(forward: np.ndarray, recompute: np.ndarray, metadata: dict) -> dict:
-    """Compare route counts and received rank loads for one logical layer call."""
+    """Compare route counts and per-rank loads for one layer call."""
     ranks = metadata["ep_group_global_ranks"]
-    owners = metadata["expert_placement"]
     diff = recompute.astype(np.int64) - forward
-    _, forward_load = aggregate_load(forward, ranks, owners)
-    _, recompute_load = aggregate_load(recompute, ranks, owners)
+    if metadata.get("layout") == "runtime_slots":
+        # Rows are ranks and columns are their own slots, so the row sum is the rank load.
+        forward_load = forward.sum(axis=1, dtype=np.int64)
+        recompute_load = recompute.sum(axis=1, dtype=np.int64)
+    else:
+        ranks, owners = metadata["ep_group_global_ranks"], metadata["expert_placement"]
+        _, forward_load = aggregate_load(forward, ranks, owners)
+        _, recompute_load = aggregate_load(recompute, ranks, owners)
     rank_delta = recompute_load - forward_load
     return {
         "num_changed_elements": int(np.count_nonzero(diff)),
@@ -210,6 +222,11 @@ def _call_key(metadata: dict) -> tuple:
     ):
         raise ValueError("invalid checkpoint call identity")
     return fqn, tuple(path), call
+
+
+def _route_key(metadata: dict) -> tuple:
+    """Identify one layer call across the layouts dumped by the same run."""
+    return (metadata["run_id"], metadata["microstep"], metadata["phase"], *_call_key(metadata))
 
 
 def _sort_key(metadata: dict) -> tuple:
@@ -347,7 +364,12 @@ def analyze(
         "microsteps": [],
     }
     ep_summary: dict[tuple[int, str, int, str], dict] = {}
-    for manifest in sorted(input_dir.rglob("metadata.jsonl")):
+    # Runtime-slot records borrow the combine return volume of their logical record,
+    # which therefore has to be read first.
+    manifests = sorted(input_dir.rglob("metadata.jsonl"))
+    manifests.sort(key=lambda manifest: manifest.parent.name == "runtime_slots")
+    source_sends: dict[tuple, int] = {}
+    for manifest in manifests:
         directory = manifest.parent
         relative = directory.relative_to(input_dir)
         microsteps = defaultdict(list)
@@ -376,17 +398,20 @@ def analyze(
                         continue
                     ranks = metadata["ep_group_global_ranks"]
                     if layout == "runtime_slots":
-                        # Rows are ranks and columns are their own slots, so sums need no mapping.
-                        expert_load = counts.sum(axis=0, dtype=np.int64)
+                        # Every cell is one runtime slot of one rank; rows are ranks.
+                        expert_load = counts.ravel()
                         rank_load = counts.sum(axis=1, dtype=np.int64)
+                        returned_tokens = source_sends.get(_route_key(metadata))
                     else:
                         expert_load, rank_load = aggregate_load(counts, ranks, metadata["expert_placement"])
+                        returned_tokens = int(counts.sum(axis=1).max())
+                        source_sends[_route_key(metadata)] = returned_tokens
                     stats = {
                         **metadata,
                         "expert_stats": _stats(expert_load),
                         "rank_stats": _rank_stats(rank_load, ranks),
                         "buffer_estimates": _buffer_bytes(
-                            rank_load, counts, metadata, metadata["num_local_experts"],
+                            rank_load, metadata, metadata["num_local_experts"], returned_tokens,
                         ),
                         "ep_simulations": [],
                     }
@@ -435,8 +460,14 @@ def analyze(
 
                 phase_dir = output_dir / relative / f"micro_{microstep:06d}" / phase
                 phase_dir.mkdir(parents=True, exist_ok=True)
-                column = "slot" if layout == "runtime_slots" else "expert"
-                expert_columns = [f"{column}_{index}" for index in range(max(load.size for load in expert_loads))]
+                if layout == "runtime_slots":
+                    slots = layers[0]["num_local_experts"]
+                    expert_columns = [
+                        f"rank{index // slots}_slot{index % slots}"
+                        for index in range(max(load.size for load in expert_loads))
+                    ]
+                else:
+                    expert_columns = [f"expert_{index}" for index in range(max(load.size for load in expert_loads))]
                 rank_columns = [f"rank_{rank}" for rank in layers[0]["ep_group_global_ranks"]]
                 expert_matrix = _write_load_matrix(phase_dir, "expert_load", layers, expert_loads, expert_columns)
                 rank_matrix = _write_load_matrix(phase_dir, "rank_load", layers, rank_loads, rank_columns)
